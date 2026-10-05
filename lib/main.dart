@@ -19,6 +19,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'shadow_chat_screen.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'dart:typed_data';
@@ -3031,6 +3032,36 @@ class _ChatListScreenState extends State<ChatListScreen> {
                             ],
                           ),
                         ),
+                        PopupMenuItem<String>(
+                          value: 'shadow_chat',
+                          child: Row(
+                            children: [
+                              Container(
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0xFFB388FF),
+                                      blurRadius: 8,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                                child: const CircleAvatar(
+                                  radius: 16,
+                                  backgroundImage: AssetImage(
+                                    'assets/images/shadow_avatar.jpg',
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'محادثة الظل',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                   onSelected: (String result) {
                     if (result == 'status') {
@@ -3058,6 +3089,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => const SecretGroupsScreen(),
+                        ),
+                      );
+                    } else if (result == 'shadow_chat') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ShadowChatScreen(),
                         ),
                       );
                     }
