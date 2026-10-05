@@ -1,0 +1,222 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return signedIn()
+        && get(/databases/$(database)/documents/config/app).data.ownerUid == request.auth.uid;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isMember(roomId, memberId) {
+      return exists(/databases/$(database)/documents/rooms/$(roomId)/members/$(memberId));
+    }
+
+    function isRoomMember(roomId) {
+      return signedIn() && isMember(roomId, request.auth.uid);
+    }
+
+    function isSecretChat(chatId) {
+      return chatId == 'secret_group' || chatId == 'shadow_ops';
+    }
+
+    function secretRoomId(chatId) {
+      return chatId == 'shadow_ops' ? 'secret_room' : 'secret_group';
+    }
+
+    function canAccessSecretChat(chatId) {
+      return isSecretChat(chatId)
+        && (chatId == 'secret_group'
+          || isOwner()
+          || isRoomMember(secretRoomId(chatId)));
+    }
+
+    function hasAcceptedContact(otherUserId) {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)/regularContacts/$(otherUserId)).data.status == 'accepted';
+    }
+
+    function isApprovedDirectChat(chatId) {
+      let chat = get(/databases/$(database)/documents/chats/$(chatId)).data;
+      return signedIn()
+        && chat.chatType == 'direct'
+        && chat.participantA is string
+        && chat.participantB is string
+        && (chat.participantA == request.auth.uid || chat.participantB == request.auth.uid)
+        && hasAcceptedContact(
+          chat.participantA == request.auth.uid
+            ? chat.participantB
+            : chat.participantA
+        );
+    }
+
+    function isDirectChatParticipant(chatId) {
+      let chat = get(/databases/$(database)/documents/chats/$(chatId)).data;
+      return signedIn()
+        && chat.chatType == 'direct'
+        && (chat.participantA == request.auth.uid
+          || chat.participantB == request.auth.uid);
+    }
+
+    function canAccessChat(chatId) {
+      return canAccessSecretChat(chatId)
+        || (signedIn() && !isSecretChat(chatId)
+          && (get(/databases/$(database)/documents/chats/$(chatId)).data.chatType != 'direct'
+            || isApprovedDirectChat(chatId)));
+    }
+
+    match /chats/{chatId}/messages/{messageId} {
+      allow read: if canAccessChat(chatId);
+      allow create: if signedIn()
+        && canAccessChat(chatId)
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 4000
+        && request.resource.data.uid == request.auth.uid;
+      allow update: if canAccessChat(chatId)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['deletedFor'])
+        && request.resource.data.get('deletedFor', []) is list
+        && resource.data.get('deletedFor', []) is list
+        && request.resource.data.get('deletedFor', [])
+          .hasAll(resource.data.get('deletedFor', []))
+        && request.resource.data.get('deletedFor', []).hasAll([request.auth.uid])
+        && request.resource.data.get('deletedFor', []).size()
+          <= resource.data.get('deletedFor', []).size() + 1;
+      allow delete: if canAccessChat(chatId)
+        && resource.data.uid == request.auth.uid;
+    }
+
+    match /chats/{chatId} {
+      allow read: if canAccessChat(chatId);
+      allow create: if signedIn()
+        && (
+          request.resource.data.chatType != 'direct'
+          || (
+            request.resource.data.participantA is string
+            && request.resource.data.participantB is string
+            && request.resource.data.participantA != request.resource.data.participantB
+            && (request.resource.data.participantA == request.auth.uid
+              || request.resource.data.participantB == request.auth.uid)
+            && hasAcceptedContact(
+              request.resource.data.participantA == request.auth.uid
+                ? request.resource.data.participantB
+                : request.resource.data.participantA
+            )
+          )
+        );
+      allow update: if canAccessChat(chatId);
+      allow delete: if isDirectChatParticipant(chatId);
+    }
+
+    match /users/{userId}/groupContacts/{contactId} {
+      allow read, write: if isSelf(userId);
+    }
+
+    match /users/{userId}/roomContacts/{contactId} {
+      allow read, write: if isSelf(userId);
+    }
+
+    match /users/{userId}/regularContacts/{contactId} {
+      allow read: if isSelf(userId);
+      allow create: if (isSelf(userId)
+          && contactId != request.auth.uid
+          && request.resource.data.uid == contactId
+          && request.resource.data.status == 'pending')
+        || (signedIn()
+          && contactId == request.auth.uid
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.status == 'incoming');
+      allow update: if (isSelf(userId)
+          && ((resource.data.status == 'incoming'
+                && request.resource.data.status in ['accepted', 'rejected'])
+              || (resource.data.status == 'pending'
+                && resource.data.uid == request.auth.uid
+                && request.resource.data.status == 'rejected')
+              || (resource.data.status == 'rejected'
+                && resource.data.uid == contactId
+                && request.resource.data.status == 'pending')))
+        || (signedIn()
+          && resource.data.uid == request.auth.uid
+          && ((resource.data.status == 'pending'
+                && request.resource.data.status in ['accepted', 'rejected'])
+              || (resource.data.status == 'rejected'
+                && request.resource.data.status == 'incoming')));
+      allow delete: if isSelf(userId)
+        || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    match /users/{userId}/security/appLock {
+      allow read: if isSelf(userId);
+      allow create, update: if isSelf(userId)
+        && request.resource.data.passwordHash is string
+        && request.resource.data.enabled is bool;
+      allow delete: if false;
+    }
+
+    match /users/{userId}/chatSecurity/{chatId} {
+      allow read, write: if isSelf(userId);
+    }
+
+    match /users/{userId}/settings/{settingId} {
+      allow read, write: if isSelf(userId);
+    }
+
+    match /users/{userId} {
+      allow read: if isSelf(userId);
+      allow create, update: if isSelf(userId);
+      allow delete: if false;
+    }
+
+    match /publicProfiles/{userId} {
+      allow read: if signedIn();
+      allow create, update: if isSelf(userId);
+      allow delete: if false;
+    }
+
+    match /rooms/{roomId}/members/{memberId} {
+      allow read: if (roomId == 'secret_group' && signedIn())
+        || isRoomMember(roomId)
+        || isOwner();
+      allow create: if signedIn()
+        && request.resource.data.addedBy == request.auth.uid
+        && roomId in ['secret_room', 'secret_group']
+        && (roomId == 'secret_group' || isOwner());
+      allow update: if isOwner()
+        && request.resource.data.addedBy == resource.data.addedBy;
+      allow delete: if isOwner()
+        || (roomId == 'secret_group' && isRoomMember(roomId))
+        || (signedIn() && request.auth.uid == memberId);
+    }
+
+    match /config/app {
+      allow read: if signedIn();
+      allow create: if false;
+      allow update: if isOwner()
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.ownerKeyHash is string
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['ownerKeyHash', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /config/secretRoom {
+      allow read: if signedIn();
+      allow create, update: if isOwner()
+        && request.resource.data.codeHash is string;
+      allow delete: if false;
+    }
+
+    match /appUpdates/{updateId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/shadow_splash_background</item>
+        <item name="android:windowSplashScreenBackground">@color/shadow_splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@null</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/shadow_splash_background</item>
+        <item name="android:statusBarColor">#101716</item>
+        <item name="android:navigationBarColor">#101716</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/shadow_splash_background</item>
+        <item name="android:statusBarColor">#101716</item>
+        <item name="android:navigationBarColor">#101716</item>
+    </style>
+</resources>
