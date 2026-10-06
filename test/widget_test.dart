@@ -19,32 +19,19 @@ Future<void> _openJourneyToFinalDay(WidgetTester tester) async {
   expect(find.text('OPEN THE DOOR'), findsOneWidget);
   expect(find.text('الرجوع'), findsOneWidget);
   expect(find.text('GO BACK'), findsOneWidget);
+  expect(find.byKey(const ValueKey('shadow-door-closed')), findsOneWidget);
+  expect(find.byKey(const ValueKey('shadow-chat-input')), findsNothing);
 
-      final closedLeftDoorAngle = tester
-        .widget<Transform>(find.byKey(const ValueKey('shadow-door-panel-left')))
-        .transform
-        .entry(0, 0);
-      final closedRightDoorAngle = tester
-        .widget<Transform>(find.byKey(const ValueKey('shadow-door-panel-right')))
-      .transform
-      .entry(0, 0);
   await tester.tap(find.byKey(const ValueKey('open-door')));
   await tester.pump();
-    await tester.pump(const Duration(milliseconds: 850));
-      final openingLeftDoorAngle = tester
-        .widget<Transform>(find.byKey(const ValueKey('shadow-door-panel-left')))
-        .transform
-        .entry(0, 0);
-      final openingRightDoorAngle = tester
-        .widget<Transform>(find.byKey(const ValueKey('shadow-door-panel-right')))
-      .transform
-      .entry(0, 0);
-      expect(openingLeftDoorAngle, lessThan(closedLeftDoorAngle));
-      expect(openingRightDoorAngle, lessThan(closedRightDoorAngle));
-    await tester.pump(const Duration(milliseconds: 400));
+  expect(find.byKey(const ValueKey('shadow-door-open')), findsOneWidget);
+  await tester.pump(const Duration(milliseconds: 850));
+  await tester.pump(const Duration(milliseconds: 400));
   await tester.pump(const Duration(milliseconds: 1200));
   await tester.pumpAndSettle();
   expect(find.text('اليوم الأول • المرحلة الأولى'), findsOneWidget);
+  expect(find.byKey(const ValueKey('shadow-chat-input')), findsOneWidget);
+  expect(find.byKey(const ValueKey('shadow-chat-send')), findsOneWidget);
 
   const nextDayTitles = [
     'اليوم الثاني • المرحلة الثانية',
@@ -67,11 +54,16 @@ void main() {
     );
 
     expect(isDuplicateFirebaseInitializationError(duplicateError), isTrue);
-    expect(isDuplicateFirebaseInitializationError(FirebaseException(
-      plugin: 'firebase_core',
-      code: 'unknown',
-      message: 'other error',
-    )), isFalse);
+    expect(
+      isDuplicateFirebaseInitializationError(
+        FirebaseException(
+          plugin: 'firebase_core',
+          code: 'unknown',
+          message: 'other error',
+        ),
+      ),
+      isFalse,
+    );
   });
 
   test('Firebase add failures expose the real error code', () {
@@ -103,51 +95,53 @@ void main() {
   });
 
   test('display names are sanitized consistently before saving', () {
-    expect(
-      sanitizeDisplayName('   علي   أحمد   '),
-      'علي أحمد',
-    );
+    expect(sanitizeDisplayName('   علي   أحمد   '), 'علي أحمد');
     expect(sanitizeDisplayName(''), isEmpty);
   });
 
-  test('secret member removal policy allows group removal and owner-only room removal', () {
-    expect(
-      canRemoveSecretMember(
-        isGroup: true,
-        ownerVerified: false,
-        isOwnerUser: false,
-      ),
-      isTrue,
-    );
-    expect(
-      canRemoveSecretMember(
-        isGroup: false,
-        ownerVerified: false,
-        isOwnerUser: true,
-      ),
-      isFalse,
-    );
-    expect(
-      canRemoveSecretMember(
-        isGroup: false,
-        ownerVerified: true,
-        isOwnerUser: true,
-      ),
-      isTrue,
-    );
-    expect(
-      canRemoveSecretMember(
-        isGroup: false,
-        ownerVerified: true,
-        isOwnerUser: false,
-      ),
-      isFalse,
-    );
-  });
+  test(
+    'secret member removal policy allows group removal and owner-only room removal',
+    () {
+      expect(
+        canRemoveSecretMember(
+          isGroup: true,
+          ownerVerified: false,
+          isOwnerUser: false,
+        ),
+        isTrue,
+      );
+      expect(
+        canRemoveSecretMember(
+          isGroup: false,
+          ownerVerified: false,
+          isOwnerUser: true,
+        ),
+        isFalse,
+      );
+      expect(
+        canRemoveSecretMember(
+          isGroup: false,
+          ownerVerified: true,
+          isOwnerUser: true,
+        ),
+        isTrue,
+      );
+      expect(
+        canRemoveSecretMember(
+          isGroup: false,
+          ownerVerified: true,
+          isOwnerUser: false,
+        ),
+        isFalse,
+      );
+    },
+  );
 
   testWidgets('Shadow Chat app starts', (WidgetTester tester) async {
     appLockEnabledNotifier.value = true;
-    appLockPasswordNotifier.value = await hashPassword('test-app-lock-password');
+    appLockPasswordNotifier.value = await hashPassword(
+      'test-app-lock-password',
+    );
     await tester.pumpWidget(const MaterialApp(home: AppLockGate()));
 
     expect(find.byType(AppLockGate), findsOneWidget);
@@ -179,9 +173,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({'has_seen_onboarding': true});
     firebaseReady = false;
-    await tester.pumpWidget(
-      const MaterialApp(home: ChatListScreen()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: ChatListScreen()));
     await tester.pump();
 
     expect(find.byKey(const ValueKey('open-shadow-chat')), findsOneWidget);

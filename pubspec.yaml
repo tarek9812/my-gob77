@@ -18,6 +18,7 @@ dependencies:
   image_picker: ^1.1.2
   firebase_core: ^3.13.0
   firebase_auth: ^5.5.3
+  firebase_ai: ^2.3.0
   firebase_messaging: ^15.2.10
   cloud_firestore: ^5.6.7
   firebase_storage: ^12.4.5
@@ -45,8 +46,6 @@ flutter:
     - assets/images/forest_dawn.jpg
     - assets/images/shadow_avatar.jpg
     - assets/images/forest_entry.jpg
-    - assets/images/haunted_door.jpg
-    - assets/images/haunted_door_clear.jpg
-    - assets/images/door_leaf_left.jpg
-    - assets/images/door_leaf_right.jpg
+    - assets/images/IMG-20261006-WA0558.jpg
+    - assets/images/IMG-20261006-WA7008.jpg
     - assets/audio/whale_sound.mp3
