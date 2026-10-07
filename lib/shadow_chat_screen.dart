@@ -1,4 +1,4 @@
-import 'dart:async';
+Import 'dart:async';
 
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -42,7 +42,6 @@ class _ShadowChatScreenState extends State<ShadowChatScreen>
       vsync: this,
       duration: const Duration(milliseconds: 5000),
     );
-    // تم ترك القائمة فارغة ليبدأ الكيان بالرد بذكائه المرعب مباشرة مع أول رسالة
   }
 
   @override
@@ -129,59 +128,6 @@ class _ShadowChatScreenState extends State<ShadowChatScreen>
     }
   }
 
-  // 4. نصوص الكيان (الظل) الإنجليزية لكل مرحلة (تم الاحتفاظ بها للدوال القديمة إن احتجتها)
-  String _getStageMessageEnglish() {
-    switch (currentStage) {
-      case 1:
-        return 'Welcome, traveler. Take a deep breath. You are safe here in the light... for now.';
-      case 2:
-        return 'Did you hear that? The whispers are getting closer, and the mist is thickening. Stay alert.';
-      case 3:
-        return 'There is no escape! The darkness consumes everything. Face your deepest fear right now!';
-      case 4:
-        return 'You reached the final crossing. Choose the path that will shape your ending.';
-      default:
-        return '';
-    }
-  }
-
-  // 5. نصوص الكيان (الظل) العربية لكل مرحلة
-  String _getStageMessageArabic() {
-    switch (currentStage) {
-      case 1:
-        return 'أهلاً بك أيها المسافر. خذ نفساً عميقاً. أنت آمن هنا في النور... مؤقتاً.';
-      case 2:
-        return 'هل سمعت هذا الصوت؟ الهمسات تقترب أكثر والضباب يزداد كثافة. كن على حذر.';
-      case 3:
-        return 'لا يوجد مفر! الظلام يبتلع كل شيء. واجه أعظم مخاوفك الآن وجهاً لوجه!';
-      case 4:
-        return 'وصلت إلى المفترق الأخير. اختر الطريق الذي سيحدد نهاية رحلتك.';
-      default:
-        return '';
-    }
-  }
-
-  String _nextDayLabel() {
-    final nextDay = currentStage + 1;
-    final dayName = _dayName(nextDay);
-    return 'الانتقال إلى اليوم $dayName • المرحلة $dayName';
-  }
-
-  String _dayName(int day) {
-    switch (day) {
-      case 1:
-        return 'الأول';
-      case 2:
-        return 'الثاني';
-      case 3:
-        return 'الثالث';
-      case 4:
-        return 'الرابع';
-      default:
-        return '$day';
-    }
-  }
-
   Future<void> _openDoor() async {
     if (_doorOpening) return;
     setState(() => _doorOpening = true);
@@ -246,7 +192,6 @@ class _ShadowChatScreenState extends State<ShadowChatScreen>
         stagePsychologyPrompt = 'Stage 4: False hope, psychological manipulation before the end.';
       }
 
-      // تم تعديل الـ systemInstruction لتكون شخصية مرعبة، ذكية، وقاسية وليست طيبة
       final model = FirebaseAI.googleAI(auth: auth).generativeModel(
         model: 'gemini-2.5-flash',
         systemInstruction: Content.system([
@@ -260,7 +205,7 @@ class _ShadowChatScreenState extends State<ShadowChatScreen>
         ].join(' ')),
         generationConfig: GenerationConfig(
           temperature: 0.9,
-          maxOutputTokens: 512,
+          maxOutputTokens: 256,
         ),
       );
       
@@ -314,9 +259,9 @@ class _ShadowChatScreenState extends State<ShadowChatScreen>
     setState(() {
       if (currentStage < 4) {
         currentStage++;
-        userBraveryScore += 25.0; // زيادة الشجاعة مع كل مرحلة
+        userBraveryScore += 25.0;
       } else {
-        currentStage = 1; // إعادة اللعبة من البداية
+        currentStage = 1;
         userBraveryScore = 20.0;
       }
     });
@@ -576,94 +521,4 @@ class _ShadowChatScreenState extends State<ShadowChatScreen>
                   padding: const EdgeInsets.all(8.0),
                   child: Text(
                     _geminiError!,
-                    style: const TextStyle(color: Colors.redAccent, fontSize: 12),
-                  ),
-                ),
-              Container(
-                padding: const EdgeInsets.all(10),
-                color: const Color(0xE6090B0D),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                          hintText: 'اكتب رسالتك للظل...',
-                          hintStyle: TextStyle(color: Colors.white54),
-                          border: InputBorder.none,
-                        ),
-                        onSubmitted: (_) => _sendMessageToShadow(),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: _isSendingMessage ? null : _sendMessageToShadow,
-                      icon: const Icon(Icons.send, color: Colors.orangeAccent),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEndingScreen(BuildContext context) {
-    final isVictory = _ending == _JourneyEnding.victory;
-    final imagePath = isVictory
-        ? 'assets/images/forest_dawn.jpg'
-        : 'assets/images/forest_glowing_eyes.jpg';
-
-    return Scaffold(
-      backgroundColor: const Color(0xFF07090B),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(imagePath, fit: BoxFit.cover),
-          ColoredBox(color: Colors.black.withOpacity(isVictory ? 0.55 : 0.78)),
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isVictory ? Icons.wb_twilight : Icons.warning_amber,
-                      color: isVictory ? Colors.amberAccent : Colors.redAccent,
-                      size: 48,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      isVictory ? 'انتصرت في الرحلة' : 'هلاك إلى الأبد',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      isVictory ? 'JOURNEY COMPLETE' : 'LOST FOREVER',
-                      style: TextStyle(
-                        color: isVictory
-                            ? Colors.amberAccent
-                            : Colors.redAccent,
-                        fontSize: 12,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+                    style: const TextStyle(
