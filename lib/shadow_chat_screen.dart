@@ -1,5 +1,6 @@
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -67,7 +68,7 @@ class _ShadowChatScreenState extends State<ShadowChatScreen>
 
   Future<void> _precacheEntryImages() async {
     for (final path in const [
-      'assets/images/IMG-20261006-WA0558.jpg',
+      'assets/images/IMG-20261007-WA0945.jpg',
       'assets/images/IMG-20261006-WA7008.jpg',
       'assets/images/forest_entry.jpg',
     ]) {
@@ -292,76 +293,87 @@ class _ShadowChatScreenState extends State<ShadowChatScreen>
 
   Widget _buildDoorScreen(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF07090B),
+      backgroundColor: const Color(0xFF000000),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final coverWidth =
-                constraints.maxWidth > constraints.maxHeight * 1.5
-                ? constraints.maxWidth
-                : constraints.maxHeight * 1.5;
-            final imageCacheWidth =
-                (coverWidth * MediaQuery.devicePixelRatioOf(context))
-                    .round()
-                    .clamp(960, 1920)
-                    .toInt();
-
-            final doorProgress = Curves.easeInOutSine
-                .transform(_doorAnimationController.value);
-            final openingScale = 1.0 + doorProgress * 0.04;
-            final perspectiveShift = (1.0 - doorProgress) * 10.0;
-            final innerDepth = 1.0 - doorProgress * 0.10;
-
             return Stack(
               fit: StackFit.expand,
               children: [
                 AnimatedBuilder(
                   animation: _doorAnimationController,
                   builder: (context, child) {
-                    final image = Image.asset(
-                      _doorOpening || doorProgress > 0.5
-                          ? 'assets/images/IMG-20261006-WA7008.jpg'
-                          : 'assets/images/IMG-20261006-WA0558.jpg',
-                      key: ValueKey<String>(
-                        _doorOpening || doorProgress > 0.5
-                            ? 'shadow-door-open'
-                            : 'shadow-door-closed',
-                      ),
-                      fit: BoxFit.cover,
-                      cacheWidth: imageCacheWidth,
+                    final progress = Curves.easeOutCubic.transform(
+                      _doorAnimationController.value,
                     );
+                    final bgOpacity = 0.22 + (1 - progress) * 0.38;
 
-                    return Transform(
-                      transform: Matrix4.identity()
-                        ..setEntry(3, 2, 0.001)
-                        ..rotateY((1.0 - doorProgress) * 0.10)
-                        ..translate(0.0, 0.0, perspectiveShift),
-                      alignment: Alignment.center,
-                      child: Transform.scale(
-                        scale: openingScale,
-                        child: Opacity(
-                          opacity: 1.0 - doorProgress * 0.14,
-                          child: Transform.scale(
-                            scale: innerDepth,
-                            child: image,
+                    return Opacity(
+                      opacity: bgOpacity,
+                      child: Image.asset(
+                        'assets/images/IMG-20261006-WA7008.jpg',
+                        fit: BoxFit.cover,
+                      ),
+                    );
+                  },
+                ),
+                AnimatedBuilder(
+                  animation: _doorAnimationController,
+                  builder: (context, child) {
+                    final progress = Curves.easeInOutCubic.transform(
+                      _doorAnimationController.value,
+                    );
+                    final angle = -progress * (math.pi / 2.1);
+                    final glowStrength = 0.18 + (1 - progress) * 0.32;
+
+                    return Center(
+                      child: Transform(
+                        alignment: Alignment.centerLeft,
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, 0.0025)
+                          ..translate(0.0, 0.0, (1 - progress) * 24)
+                          ..rotateY(angle),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 3500),
+                          curve: Curves.easeOutCubic,
+                          width: constraints.maxWidth * 0.96,
+                          height: constraints.maxHeight,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.14),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.72),
+                                blurRadius: 28,
+                                spreadRadius: 8,
+                                offset: const Offset(0, 12),
+                              ),
+                              BoxShadow(
+                                color: const Color(0xFFB57134)
+                                    .withOpacity(glowStrength),
+                                blurRadius: 70,
+                                spreadRadius: 18,
+                              ),
+                            ],
+                            color: Colors.black,
+                          ),
+                          child: ClipRRect(
+                            child: Image.asset(
+                              'assets/images/IMG-20261007-WA0945.jpg',
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                       ),
                     );
                   },
                 ),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  color: Color.lerp(
-                    const Color(0x66000000),
-                    const Color(0x00000000),
-                    doorProgress * 0.75,
-                  ),
-                ),
                 IgnorePointer(
                   ignoring: _doorOpening,
                   child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 180),
+                    duration: const Duration(milliseconds: 800),
                     opacity: _doorOpening ? 0 : 1,
                     child: Stack(
                       children: [
@@ -379,111 +391,76 @@ class _ShadowChatScreenState extends State<ShadowChatScreen>
                         ),
                         Align(
                           alignment: Alignment.bottomCenter,
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(20),
-                            child: Container(
-                              width: double.infinity,
-                              constraints: const BoxConstraints(maxWidth: 440),
+                            child: Padding(
                               padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: const Color(0xE6090B0D),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: Colors.white24),
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.door_front_door_outlined,
-                                    color: Colors.orangeAccent,
-                                    size: 32,
+                              child: SingleChildScrollView(
+                                reverse: true,
+                                child: Container(
+                                  width: double.infinity,
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 440,
                                   ),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    'الباب لا يفتح إلا مرة واحدة...',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.6),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.white24),
                                   ),
-                                  const SizedBox(height: 6),
-                                  const Text(
-                                    'The door only opens once...',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: Colors.white70),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    'الخطوة التالية: ادخل إلى العالم الداخلي',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.orangeAccent.withOpacity(
-                                        0.9,
-                                      ),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: FilledButton.icon(
-                                      key: const ValueKey('open-door'),
-                                      onPressed: _doorOpening
-                                          ? null
-                                          : _openDoor,
-                                      icon: const Icon(
-                                        Icons.meeting_room_outlined,
-                                      ),
-                                      label: const Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 10,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'Welcome, traveler.\nTake a deep breath. You are in the light... for now.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        child: Column(
-                                          children: [
-                                            Text('افتح الباب'),
-                                            Text(
-                                              'OPEN THE DOOR',
-                                              style: TextStyle(fontSize: 11),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        'أهلاً بك أيها المسافر.\nخذ نفساً عميقاً. أنت في النور... مؤقتاً.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          key: const ValueKey('open-door'),
+                                          onPressed: _doorOpening
+                                              ? null
+                                              : _openDoor,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFF8B0000,
                                             ),
-                                          ],
-                                        ),
-                                      ),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: const Color(
-                                          0xFF49231D,
-                                        ),
-                                        foregroundColor: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: OutlinedButton(
-                                      onPressed: () =>
-                                          Navigator.of(context).maybePop(),
-                                      child: const Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 9,
-                                        ),
-                                        child: Column(
-                                          children: [
-                                            Text('الرجوع'),
-                                            Text(
-                                              'GO BACK',
-                                              style: TextStyle(fontSize: 11),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 12,
                                             ),
-                                          ],
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'ادخل',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
                           ),
                         ),
                       ],
