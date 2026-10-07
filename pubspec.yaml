@@ -39,6 +39,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - .env
     - assets/images/whale.jpg
     - assets/images/forest_safe_haven.jpg
     - assets/images/forest_fog.jpg
